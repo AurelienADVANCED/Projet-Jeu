@@ -1,4 +1,8 @@
 # Go
+- task: Go@0
+  inputs:
+    command: 'build'
+    workingDirectory: 'GoProjet.exe'
 # Build your Go project.
 # Add steps that test, save build artifacts, deploy, and more:
 # https://docs.microsoft.com/azure/devops/pipelines/languages/go
