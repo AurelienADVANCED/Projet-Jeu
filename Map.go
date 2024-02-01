@@ -3,10 +3,8 @@ package main
 import (
 	items "GoProjet/Items"
 	"bufio"
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"math"
 	"math/rand"
@@ -16,6 +14,10 @@ import (
 	"runtime"
 	"strings"
 	"time"
+)
+
+const (
+	Probabilite = 0.03 // Probabilité d'apparition d'un objet sur une case
 )
 
 var (
@@ -50,18 +52,6 @@ type Monstre struct {
 	RayonDeplacement int
 }
 
-/* Fonction pour attaquer un adversaire
-Si l'armure est deux fois plus grande que les degats du personnage, alors les degats sont annulés
-Exemple: armure = 20, degats = 10, alors degats = 0
-Exemple: armure = 20, degats = 30, alors degats = 10
-Sinon les degats sont réduits de la valeur de l'armure
-
-Si l'agilité du personnage est supérieure à celle de l'ennemi, chaque niveau supérieur d'agilité donnera 5% de chance de plus
-d'éviter le coup de l'ennemie.
-
-Si le mana du personnage tombe a 0 il subira des dégats de 10 par tour.
-*/
-
 func attaquer(joueur *Personnage, adversaire *Personnage) string {
 	adversaire.Vie -= joueur.Arme.Degats
 	message := "Degats infligés : " + fmt.Sprintf("%.2f", joueur.Arme.Degats) + "\nVie de l'adversaire : " + fmt.Sprintf("%.2f", adversaire.Vie) + "\n" + joueur.Classe + " : " + fmt.Sprintf("%.2f", joueur.Vie) + "\n"
@@ -94,6 +84,7 @@ type PersonnageRef struct {
 type Case struct {
 	Personnage *Personnage
 	Monstre    *Monstre
+	Contenu    items.Item
 }
 
 type Carte struct {
@@ -122,11 +113,11 @@ func (c *Carte) placerPersonnage(p *Personnage, x, y int) {
 func (c Carte) afficher() {
 	fmt.Print("   ") // Espacement pour les numéros de ligne
 	for x := 0; x < c.largeur; x++ {
-		fmt.Printf("%2d ", x) // Ajustez l'espacement si nécessaire
+		fmt.Printf("%2d ", x)
 	}
 	fmt.Println()
 	for y, ligne := range c.grille {
-		fmt.Printf("%2d ", y) // Ajustez l'espacement si nécessaire
+		fmt.Printf("%2d ", y)
 		var ligneAffichage []string
 		for _, caseCourante := range ligne {
 			symbole := " . " // Symbole pour une case vide
@@ -138,6 +129,8 @@ func (c Carte) afficher() {
 				}
 			} else if caseCourante.Monstre != nil {
 				symbole = "\033[34m " + string(caseCourante.Monstre.Classe[0]) + " \033[0m" // Symbole pour un monstre
+			} else if caseCourante.Contenu != nil {
+				symbole = "\033[33m " + string(caseCourante.Contenu.GetNom()[0]) + " \033[0m" // Symbole pour un objet
 			}
 			ligneAffichage = append(ligneAffichage, symbole)
 		}
@@ -193,7 +186,7 @@ func (c *Carte) trouverPositionPersonnage(p *Personnage) (int, int, bool) {
 			}
 		}
 	}
-	return -1, -1, false // Retourne -1, -1 si le personnage n'est pas trouvé
+	return -1, -1, false
 }
 
 func (c *Carte) deplacerSiPossible(p *Personnage, xDest, yDest int) string {
@@ -457,55 +450,9 @@ func genererReponseAleatoire() string {
 	return reponses[indice]
 }
 
-func DiscuterChatGPT() {
-	apiUrl := "https://api.openai.com/v1/chat/completions"
-	apiKey := "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"
-
-	// Préparez la requête avec votre texte d'entrée
-	inputText := "Bonjour, GPT-3 !"
-	data := map[string]interface{}{
-		"model":      "babbage-002",
-		"prompt":     inputText,
-		"max_tokens": 50,
-	}
-
-	requestBody, err := json.Marshal(data)
-	if err != nil {
-		fmt.Println("Erreur de création de la requête JSON:", err)
-		return
-	}
-
-	// Envoyez la requête POST à l'API de GPT-3
-	req, err := http.NewRequest("POST", apiUrl, bytes.NewBuffer(requestBody))
-	if err != nil {
-		fmt.Println("Erreur de création de la requête:", err)
-		return
-	}
-	req.Header.Add("Authorization", "Bearer "+apiKey)
-	req.Header.Add("Content-Type", "application/json")
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		fmt.Println("Erreur lors de l'envoi de la requête:", err)
-		return
-	}
-	defer resp.Body.Close()
-
-	// Traitez la réponse JSON
-	responseBody, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Println("Erreur lors de la lecture de la réponse:", err)
-		return
-	}
-
-	// Affichez la réponse générée par GPT-3
-	fmt.Println(string(responseBody))
-}
-
 func viderCacheClavier() {
 	reader := bufio.NewReader(os.Stdin)
-	reader.ReadString('\n') // Lire et ignorer tout ce qui est dans le cache du clavier jusqu'à la prochaine ligne
+	reader.ReadString('\n')
 }
 
 func (c *Carte) placerMonstre(m *Monstre, x, y int) {
@@ -536,13 +483,27 @@ func UtiliserInventaire() {
 			AfficherInventaire()
 		case 2:
 			fmt.Println("Entrez le nom de l'item : ")
-
 		case 3:
 			clearConsole()
 			carte.afficher()
 			return
 		default:
 			fmt.Println("Choix non valide. Veuillez entrer un numéro entre 1 et 3.")
+		}
+	}
+}
+
+func PlacerObjetsSurCarte(carte *Carte) {
+	rand.Seed(42) // Utilisez une graine fixe pour la génération aléatoire
+	for x := 0; x < carte.largeur; x++ {
+		for y := 0; y < carte.hauteur; y++ {
+			if rand.Float64() < Probabilite {
+				if rand.Intn(2) == 0 {
+					carte.grille[x][y].Contenu = AddPotionDeSoin(1)
+				} else {
+					carte.grille[x][y].Contenu = AddCoteDePorc(1)
+				}
+			}
 		}
 	}
 }
@@ -556,7 +517,7 @@ func main() {
 	http.HandleFunc("/joueur", getJoueur)
 
 	go func() {
-		err := http.ListenAndServe(":8000", nil)
+		err := http.ListenAndServe(":8002", nil)
 		if err != nil {
 			log.Fatal("ListenAndServe: ", err)
 		}
@@ -568,8 +529,9 @@ func main() {
 		taille_max: 15,
 	}
 
-	inventaire.AddItems(AddCoteDePorc(2))
-	inventaire.AddItems(AddPotionDeSoin(1))
+	inventaire.AddItems(AddCoteDePorc(3))
+	inventaire.AddItems(AddPotionDeSoin(20))
+	inventaire.AddItems(AddPotionDeSoin(200))
 
 	carte = nouvelleCarte(15, 15)
 	mage = CreerMagicien()
@@ -585,6 +547,8 @@ func main() {
 	carte.placerPersonnage(&elf.Personnage, 2, 2)
 	carte.placerMonstre(&orc.Monstre, 3, 3)
 	carte.placerMonstre(&gobelin.Monstre, 4, 4)
+
+	PlacerObjetsSurCarte(&carte)
 
 	var choix int
 
@@ -612,14 +576,11 @@ func main() {
 		case 1:
 			var actionChoice int
 			clearConsole()
-			fmt.Println("1. Inventaire (En cours)")
 			fmt.Println("2. Communiquer")
 			fmt.Print("Entrez votre choix (1-3) : ")
 			fmt.Scan(&actionChoice)
 
 			switch actionChoice {
-			case 1:
-				DiscuterChatGPT()
 			case 2:
 				clearConsole()
 				viderCacheClavier()

@@ -5,6 +5,7 @@ type Item interface {
 	TypeItem() int
 	StackMax() int
 	GetStack() int
+	GetStackMax() int
 	SetStack(int)
 	Clone() Item
 }
