@@ -11,7 +11,7 @@ trigger:
 - main
 
 pool:
-  vmImage: ubuntu-latest
+  name: Default
 
 variables:
   GOBIN:  '$(GOPATH)/bin' # Go binaries path
