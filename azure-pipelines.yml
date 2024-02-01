@@ -12,7 +12,7 @@ pool:
 
 variables:
   GOBIN:  '$(GOPATH)/bin' # Go binaries path
-  GOROOT: 'C:\Go' # Go installation path (assurez-vous que le chemin est correct)
+  GOROOT: '/usr/local/go1.11'
   GOPATH: '$(Agent.BuildDirectory)\gopath' # Go workspace path
   modulePath: '$(GOPATH)\src\github.com\$(Build.Repository.Name)' # Path to the module's code
 
@@ -21,7 +21,7 @@ steps:
     mkdir -p '$(GOBIN)'
     mkdir -p '$(GOPATH)\pkg'
     mkdir -p '$(modulePath)'
-    Move-Item -Path $(Agent.BuildDirectory)\* -Destination $(modulePath)
+    Copy-Item -Path $(Agent.BuildDirectory)\* -Destination $(modulePath) -Recurse
     Write-Host "##vso[task.prependpath]$(GOBIN)"
     Write-Host "##vso[task.prependpath]$(GOROOT)\bin"
   displayName: 'Set up the Go workspace'
