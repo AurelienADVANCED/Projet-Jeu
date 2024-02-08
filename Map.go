@@ -34,8 +34,9 @@ var (
 type Personnage struct {
 	Vie              float64
 	VieMax           float64
-	Arme             items.Arme
+	Arme             *items.Arme
 	Mana             float64 // Pour les personnages pouvant utiliser de la magie
+	ManaMax          float64
 	Force            float64 // Pour les personnages physiques
 	Agilite          float64 // Pour les personnages physiques
 	Armure           float64
@@ -46,7 +47,7 @@ type Personnage struct {
 type Monstre struct {
 	Vie              float64
 	VieMax           float64
-	Arme             items.Arme
+	Arme             *items.Arme
 	NiveauDeMenace   float64
 	Classe           string
 	RayonDeplacement int
@@ -54,13 +55,31 @@ type Monstre struct {
 
 func attaquer(joueur *Personnage, adversaire *Personnage) string {
 	adversaire.Vie -= joueur.Arme.Degats
-	message := "Degats infligés : " + fmt.Sprintf("%.2f", joueur.Arme.Degats) + "\nVie de l'adversaire : " + fmt.Sprintf("%.2f", adversaire.Vie) + "\n" + joueur.Classe + " : " + fmt.Sprintf("%.2f", joueur.Vie) + "\n"
+	message :=
+		"Degats infligés : " + fmt.Sprintf("%.2f", joueur.Arme.Degats) +
+			"\nVie de l'adversaire : " + fmt.Sprintf("%.2f", adversaire.Vie) +
+			"\n" + joueur.Classe + " : " + fmt.Sprintf("%.2f", joueur.Vie) + "\n"
 
 	if adversaire.Vie <= 0 {
 		carte.retirerPersonnage(adversaire)
-		message += "L'adversaire a été vaincu et retiré de la carte."
-	}
+		message += "\n L'adversaire a été vaincu et retiré de la carte."
 
+	}
+	return message
+}
+
+func AttackMonster(joueur *Personnage, adversaire *Monstre) string {
+	adversaire.Vie -= joueur.Arme.Degats
+	message :=
+		"Degats infligés : " + fmt.Sprintf("%.2f", joueur.Arme.Degats) +
+			"\nVie de l'adversaire : " + fmt.Sprintf("%.2f", adversaire.Vie) +
+			"\n" + joueur.Classe + " : " + fmt.Sprintf("%.2f", joueur.Vie) + "\n"
+
+	if adversaire.Vie <= 0 {
+		carte.grille[0][0].Monstre = nil
+		message += "\n L'adversaire a été vaincu et retiré de la carte."
+
+	}
 	return message
 }
 
@@ -79,6 +98,12 @@ type PersonnageRef struct {
 	personnage *Personnage
 	nom        string
 	estVivant  func() bool
+}
+
+type MonstreRef struct {
+	monstre   *Monstre
+	nom       string
+	estVivant func() bool
 }
 
 type Case struct {
@@ -130,7 +155,12 @@ func (c Carte) afficher() {
 			} else if caseCourante.Monstre != nil {
 				symbole = "\033[34m " + string(caseCourante.Monstre.Classe[0]) + " \033[0m" // Symbole pour un monstre
 			} else if caseCourante.Contenu != nil {
-				symbole = "\033[33m " + string(caseCourante.Contenu.GetNom()[0]) + " \033[0m" // Symbole pour un objet
+				if caseCourante.Contenu.TypeItem() == 2 {
+					symbole = "\033[33m " + string([]rune(caseCourante.Contenu.GetNom())[0]) + " \033[0m" // Symbole pour une arme
+				} else if caseCourante.Contenu.TypeItem() == 1 {
+					symbole = "\033[33m A \033[0m" // Symbole pour un autre item
+				}
+
 			}
 			ligneAffichage = append(ligneAffichage, symbole)
 		}
@@ -206,15 +236,38 @@ func (c *Carte) deplacerSiPossible(p *Personnage, xDest, yDest int) string {
 	// Vérifiez si la destination est dans le rayon autorisé
 	if distance <= float64(p.RayonDeplacement) {
 		var message string = carte.obtenirContenuCase(xDest, yDest)
-		switch message {
-		case "Vous êtes ici":
+		switch {
+		case message == "Vous êtes ici":
 			return "Déplacement impossible. Vous êtes déjà ici."
-		case "Case vide":
+		case message == "Case vide":
 			c.deplacerPersonnage(p, xDest, yDest)
 			return "Déplacement effectué."
-		case "Hors de la carte":
+		case message == "Hors de la carte":
 			return "Déplacement impossible. Hors de la carte."
-		default:
+		case strings.Contains(message, "Objet"):
+			// Récupérer l'objet
+			item := c.grille[yDest][xDest].Contenu
+			inventaire.AddItems(item)
+			c.grille[yDest][xDest].Contenu = nil
+			return "Vous avez récupé un object"
+		case strings.Contains(message, "Monstre"):
+			monstres := map[string]MonstreRef{
+				"Gobelin": {&gobelin.Monstre, "Gobelin", func() bool { return gobelin.Vie > 0 }},
+				"Orc":     {&orc.Monstre, "Orc", func() bool { return orc.Vie > 0 }},
+			}
+
+			for key, val := range monstres {
+				if strings.Contains(message, key) {
+					if val.estVivant() {
+						message := AttackMonster(p, val.monstre)
+						return "Vous avez attaqué un " + val.nom + ".\n" + message
+					} else {
+						return "Le " + val.nom + " est mort"
+					}
+				}
+			}
+			return "Déplacement impossible. " + message
+		case strings.Contains(message, "Personnage"):
 			personnages := map[string]PersonnageRef{
 				"Elfe":      {&elf.Personnage, "Elfe", func() bool { return elf.Vie > 0 }},
 				"Magicien":  {&mage.Personnage, "Magicien", func() bool { return mage.Vie > 0 }},
@@ -225,13 +278,16 @@ func (c *Carte) deplacerSiPossible(p *Personnage, xDest, yDest int) string {
 			for key, val := range personnages {
 				if strings.Contains(message, key) && p.Classe != key {
 					if val.estVivant() {
-						message := attaquer(val.personnage, p)
+						message := attaquer(p, val.personnage)
 						return "Vous avez attaqué un " + val.nom + ".\n" + message
 					} else {
+
 						return "Le " + val.nom + " est mort"
 					}
 				}
 			}
+			return "Déplacement impossible. " + message
+		default:
 			return "Déplacement impossible. " + message
 		}
 	} else {
@@ -306,45 +362,61 @@ func clearConsole() {
 
 func AfficherStats_Mage(perso Personnage) {
 	fmt.Printf("	Mage\n")
-	fmt.Print("Vie : " + fmt.Sprintf("%.2f", mage.Vie) + "\n")
-	fmt.Print("Vie Max : " + fmt.Sprintf("%.2f", mage.VieMax) + "\n")
-	fmt.Print("Mana : " + fmt.Sprintf("%.2f", mage.Mana) + "\n")
-	fmt.Print("Force : " + fmt.Sprintf("%.2f", mage.Force) + "\n")
-	fmt.Print("Agilité : " + fmt.Sprintf("%.2f", mage.Agilite) + "\n")
-	fmt.Print("Armure : " + fmt.Sprintf("%.2f", mage.Armure) + "\n")
-	fmt.Print("Classe : " + mage.Classe + "\n")
-	fmt.Print("Niveau de magie : " + fmt.Sprintf("%d", mage.niveauDeMagie) + "\n\n")
-	fmt.Print("Armes : " + perso.Arme.Nom + "\n")
-	fmt.Print("Dégats : " + fmt.Sprintf("%.2f", perso.Arme.Degats) + "\n\n")
+	if mage.Vie <= 0 {
+		fmt.Print("Personnage est mort \n\n")
+	} else {
+		fmt.Print("Vie : " + fmt.Sprintf("%.2f", mage.Vie) + "\n")
+		fmt.Print("Vie Max : " + fmt.Sprintf("%.2f", mage.VieMax) + "\n")
+		fmt.Print("Mana : " + fmt.Sprintf("%.2f", mage.Mana) + "\n")
+		fmt.Print("Mana Max : " + fmt.Sprintf("%.2f", mage.ManaMax) + "\n")
+		fmt.Print("Force : " + fmt.Sprintf("%.2f", mage.Force) + "\n")
+		fmt.Print("Agilité : " + fmt.Sprintf("%.2f", mage.Agilite) + "\n")
+		fmt.Print("Armure : " + fmt.Sprintf("%.2f", mage.Armure) + "\n")
+		fmt.Print("Classe : " + mage.Classe + "\n")
+		fmt.Print("Niveau de magie : " + fmt.Sprintf("%d", mage.niveauDeMagie) + "\n\n")
+		fmt.Print("Armes : " + perso.Arme.Nom + "\n")
+		fmt.Print("Dégats : " + fmt.Sprintf("%.2f", perso.Arme.Degats) + "\n\n")
+		afficherStatutPersonnage(mage.Personnage)
+	}
 }
 
 func AfficherStats_Chevalier(perso Personnage) {
 	fmt.Printf("	Chevalier\n")
-	fmt.Print("Vie : " + fmt.Sprintf("%.2f", chevalier.Vie) + "\n")
-	fmt.Print("Vie Max : " + fmt.Sprintf("%.2f", chevalier.VieMax) + "\n")
-	fmt.Print("Mana : " + fmt.Sprintf("%.2f", chevalier.Mana) + "\n")
-	fmt.Print("Force : " + fmt.Sprintf("%.2f", chevalier.Force) + "\n")
-	fmt.Print("Agilité : " + fmt.Sprintf("%.2f", chevalier.Agilite) + "\n")
-	//fmt.Print("Armure : " + fmt.Sprintf("%.2f", chevalier.armure) + "\n")
-	fmt.Print("Classe : " + chevalier.Classe + "\n\n")
-	//fmt.Print("Armure : " + chevalier.armure + "\n")
-	fmt.Print("Armes : " + perso.Arme.Nom + "\n")
-	fmt.Print("Dégats : " + fmt.Sprintf("%.2f", perso.Arme.Degats) + "\n\n")
+	if chevalier.Vie <= 0 {
+		fmt.Print("Personnage est mort \n\n")
+	} else {
+		fmt.Print("Vie : " + fmt.Sprintf("%.2f", chevalier.Vie) + "\n")
+		fmt.Print("Vie Max : " + fmt.Sprintf("%.2f", chevalier.VieMax) + "\n")
+		fmt.Print("Mana : " + fmt.Sprintf("%.2f", chevalier.Mana) + "\n")
+		fmt.Print("Mana Max : " + fmt.Sprintf("%.2f", chevalier.ManaMax) + "\n")
+		fmt.Print("Force : " + fmt.Sprintf("%.2f", chevalier.Force) + "\n")
+		fmt.Print("Agilité : " + fmt.Sprintf("%.2f", chevalier.Agilite) + "\n")
+		fmt.Print("Classe : " + chevalier.Classe + "\n\n")
+		fmt.Print("Armes : " + perso.Arme.Nom + "\n")
+		fmt.Print("Dégats : " + fmt.Sprintf("%.2f", perso.Arme.Degats) + "\n\n")
+		afficherStatutPersonnage(chevalier.Personnage)
+	}
 }
 
 func AfficherStats_Nain(perso Personnage) {
 	fmt.Printf("	Nain\n")
-	fmt.Print("Vie : " + fmt.Sprintf("%.2f", nain.Vie) + "\n")
-	fmt.Print("Vie Max : " + fmt.Sprintf("%.2f", nain.VieMax) + "\n")
-	fmt.Print("Mana : " + fmt.Sprintf("%.2f", nain.Mana) + "\n")
-	fmt.Print("Force : " + fmt.Sprintf("%.2f", nain.Force) + "\n")
-	fmt.Print("Agilité : " + fmt.Sprintf("%.2f", nain.Agilite) + "\n")
-	fmt.Print("Armure : " + fmt.Sprintf("%.2f", nain.Armure) + "\n")
-	fmt.Print("Classe : " + nain.Classe + "\n")
-	fmt.Print("Expertise en forge : " + nain.expertiseEnForge + "\n")
-	fmt.Print("Résistance à l'alcool : " + fmt.Sprintf("%.2f", nain.resistanceAlcool) + "\n\n")
-	fmt.Print("Armes : " + perso.Arme.Nom + "\n")
-	fmt.Print("Dégats : " + fmt.Sprintf("%.2f", perso.Arme.Degats) + "\n\n")
+	if nain.Vie <= 0 {
+		fmt.Print("Personnage est mort \n\n")
+	} else {
+		fmt.Print("Vie : " + fmt.Sprintf("%.2f", nain.Vie) + "\n")
+		fmt.Print("Vie Max : " + fmt.Sprintf("%.2f", nain.VieMax) + "\n")
+		fmt.Print("Mana : " + fmt.Sprintf("%.2f", nain.Mana) + "\n")
+		fmt.Print("Mana Max : " + fmt.Sprintf("%.2f", nain.ManaMax) + "\n")
+		fmt.Print("Force : " + fmt.Sprintf("%.2f", nain.Force) + "\n")
+		fmt.Print("Agilité : " + fmt.Sprintf("%.2f", nain.Agilite) + "\n")
+		fmt.Print("Armure : " + fmt.Sprintf("%.2f", nain.Armure) + "\n")
+		fmt.Print("Classe : " + nain.Classe + "\n")
+		fmt.Print("Expertise en forge : " + nain.expertiseEnForge + "\n")
+		fmt.Print("Résistance à l'alcool : " + fmt.Sprintf("%.2f", nain.resistanceAlcool) + "\n\n")
+		fmt.Print("Armes : " + perso.Arme.Nom + "\n")
+		fmt.Print("Dégats : " + fmt.Sprintf("%.2f", perso.Arme.Degats) + "\n\n")
+		afficherStatutPersonnage(nain.Personnage)
+	}
 }
 
 func afficherStatistiques() {
@@ -360,18 +432,21 @@ func GobelinInfo(gob Gobelin) {
 	fmt.Print("Vie : " + fmt.Sprintf("%.2f", gob.Vie) + "\n")
 	fmt.Print("Vie Max : " + fmt.Sprintf("%.2f", gob.VieMax) + "\n")
 	fmt.Print("Niveau de menace : " + fmt.Sprintf("%.2f", gob.NiveauDeMenace) + "\n")
-	//fmt.Print("Armes : " + gob.arme.Nom + "\n")
-	//fmt.Print("Dégats : " + fmt.Sprintf("%.2f", perso.arme.Degats) + "\n\n")
 }
 
 func ElfeInfo(perso Personnage) {
 	fmt.Printf("	Elfe\n")
-	fmt.Print("Vie : " + fmt.Sprintf("%.2f", elf.Vie) + "\n")
-	fmt.Print("Vie Max : " + fmt.Sprintf("%.2f", elf.VieMax) + "\n")
-	fmt.Print("Affinité avec la nature : " + fmt.Sprintf("%.2f", elf.affiniteNature) + "\n")
-	fmt.Print("Longévité : " + fmt.Sprintf("%d", elf.longevite) + "\n")
-	fmt.Print("Armes : " + perso.Arme.Nom + "\n")
-	fmt.Print("Dégats : " + fmt.Sprintf("%.2f", perso.Arme.Degats) + "\n\n")
+	if elf.Vie <= 0 {
+		fmt.Print("Personnage est mort \n\n")
+	} else {
+		fmt.Print("Vie : " + fmt.Sprintf("%.2f", elf.Vie) + "\n")
+		fmt.Print("Vie Max : " + fmt.Sprintf("%.2f", elf.VieMax) + "\n")
+		fmt.Print("Affinité avec la nature : " + fmt.Sprintf("%.2f", elf.affiniteNature) + "\n")
+		fmt.Print("Longévité : " + fmt.Sprintf("%d", elf.longevite) + "\n")
+		fmt.Print("Armes : " + perso.Arme.Nom + "\n")
+		fmt.Print("Dégats : " + fmt.Sprintf("%.2f", perso.Arme.Degats) + "\n\n")
+		afficherStatutPersonnage(elf.Personnage)
+	}
 }
 
 func (c *Carte) obtenirContenuCase(x, y int) (contenu string) {
@@ -388,6 +463,8 @@ func (c *Carte) obtenirContenuCase(x, y int) (contenu string) {
 		contenu = caseCourante.Personnage.Classe
 	} else if caseCourante.Monstre != nil {
 		contenu = "Monstre: " + caseCourante.Monstre.Classe
+	} else if caseCourante.Contenu != nil {
+		contenu = "Objet: " + caseCourante.Contenu.GetNom()
 	} else {
 		contenu = "Case vide"
 	}
@@ -408,6 +485,7 @@ func MesStatistiques() {
 	default:
 		fmt.Println("Pas de statistiques pour cette classe")
 	}
+
 }
 
 func choisirClasse() {
@@ -494,21 +572,59 @@ func UtiliserInventaire() {
 }
 
 func PlacerObjetsSurCarte(carte *Carte) {
-	rand.Seed(42) // Utilisez une graine fixe pour la génération aléatoire
+	var classArmes []items.Arme // Liste pour stocker les armes de la classe du personnage
+
+	// Filtrer les armes par classe
+	for _, arme := range toutesLesArmes {
+		if arme.Classe == PersonnageSelect.Classe && arme.Nom != PersonnageSelect.Arme.Nom {
+			classArmes = append(classArmes, arme)
+		}
+	}
+
+	// Assure-toi que la graine aléatoire est initialisée correctement
+	rand.Seed(time.Now().UnixNano())
+
+	// Placer potions de soin et viande
 	for x := 0; x < carte.largeur; x++ {
 		for y := 0; y < carte.hauteur; y++ {
 			if rand.Float64() < Probabilite {
 				if rand.Intn(2) == 0 {
 					carte.grille[x][y].Contenu = AddPotionDeSoin(1)
 				} else {
-					carte.grille[x][y].Contenu = AddCoteDePorc(1)
+					carte.grille[x][y].Contenu = AddViande(1)
 				}
 			}
 		}
 	}
+
+	// Vérifier si la liste d'armes de classe n'est pas vide
+	if len(classArmes) > 0 {
+		// Sélectionner une arme aléatoire
+		armeAleatoire := classArmes[rand.Intn(len(classArmes))]
+
+		// Sélectionner une position aléatoire sur la carte
+		xAleatoire := rand.Intn(carte.largeur)
+		yAleatoire := rand.Intn(carte.hauteur)
+
+		// Placer l'arme à la position aléatoire
+		carte.grille[xAleatoire][yAleatoire].Contenu = &armeAleatoire
+	}
 }
 
-var test []*Personnage
+var OtherPersonnage []*Personnage
+
+// Vérifier que tous les ennemies sont mort
+func VerifAllEnemy(carte Carte) bool {
+
+	// Vérifier si tous les autres personnages sont morts
+	for _, character := range OtherPersonnage {
+		if character.Vie > 0 {
+			return false // Il y a au moins un autre personnage en vie
+		}
+	}
+
+	return true // Tous les ennemis et autres personnages sont morts, à l'exception du personnage sélectionné
+}
 
 // Fonctions similaires pour placer des monstres et des items
 func main() {
@@ -529,11 +645,12 @@ func main() {
 		taille_max: 15,
 	}
 
-	inventaire.AddItems(AddCoteDePorc(3))
-	inventaire.AddItems(AddPotionDeSoin(20))
-	inventaire.AddItems(AddPotionDeSoin(200))
+	inventaire.AddItems(AddViande(1))
+	inventaire.AddItems(AddPotionDeSoin(1))
 
+	InitialisationDesItems()
 	carte = nouvelleCarte(15, 15)
+
 	mage = CreerMagicien()
 	chevalier = CreerChevalier()
 	nain = nouveauNain()
@@ -548,17 +665,18 @@ func main() {
 	carte.placerMonstre(&orc.Monstre, 3, 3)
 	carte.placerMonstre(&gobelin.Monstre, 4, 4)
 
-	PlacerObjetsSurCarte(&carte)
-
 	var choix int
 
 	choisirClasse()
-	test = carte.obtenirAutresPersonnages(PersonnageSelect)
+
+	OtherPersonnage = carte.obtenirAutresPersonnages(PersonnageSelect)
+	PlacerObjetsSurCarte(&carte)
+
 	clearConsole()
 
 	fmt.Println("Vous avez choisi : " + PersonnageSelect.Classe)
-	carte.afficher()
 
+	carte.afficher()
 	for {
 		fmt.Println("Choisissez une option :")
 		fmt.Println("1. Action")
@@ -613,6 +731,12 @@ func main() {
 			carte.deplacerAutresPersonnages(PersonnageSelect)
 			carte.afficher()
 
+			// Verifie si la partie est terminé
+			Finish := VerifAllEnemy(carte)
+			if Finish {
+				fmt.Print("La partie est terminé")
+			}
+
 		case 3:
 			afficherStatistiques()
 		case 4:
@@ -628,6 +752,7 @@ func main() {
 		case 6:
 			clearConsole()
 			MesStatistiques()
+
 		case 7:
 			clearConsole()
 			UtiliserInventaire()
@@ -641,5 +766,5 @@ func main() {
 
 func getJoueur(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(&test)
+	json.NewEncoder(w).Encode(&OtherPersonnage)
 }

@@ -42,6 +42,10 @@ func (n *Nourriture) GetStackMax() int {
 	return n.Stack_max
 }
 
+func (n *Nourriture) GetSymbole() string {
+	return n.Symbole
+}
+
 func (n Nourriture) Clone() Item {
 	return &Nourriture{
 		Nom:       n.Nom,

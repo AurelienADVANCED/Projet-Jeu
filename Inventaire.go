@@ -106,7 +106,7 @@ func AfficherInventaire() {
 		fmt.Println("Nombre total d'items:", nombreTotalItems)
 		fmt.Println()
 		for index, item := range inventaire.items {
-			fmt.Printf("Item N°%d: %s x %d\n", index+1, item.GetNom(), item.GetStack())
+			fmt.Printf("Item  N°%d: %s x %d %s\n", index+1, item.GetNom(), item.GetStack(), item.GetSymbole())
 		}
 
 		var choix int
@@ -118,6 +118,8 @@ func AfficherInventaire() {
 			item := inventaire.items[choix-1]
 			if item.TypeItem() == 1 {
 				// Arme
+				switchWeapon(PersonnageSelect.Arme, item.(*items.Arme))
+
 			} else if item.TypeItem() == 2 {
 				// Nourriture
 				AddVie(*PersonnageSelect, item.(*items.Nourriture).VieRecup)
@@ -125,6 +127,12 @@ func AfficherInventaire() {
 			}
 		}
 	}
+}
+
+func switchWeapon(weapon1 *items.Arme, weapon2 *items.Arme) {
+	PersonnageSelect.Arme = weapon2
+	RemoveItems(weapon2, 1)
+	inventaire.AddItems(weapon1)
 }
 
 type Inventaire struct {

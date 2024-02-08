@@ -7,11 +7,11 @@ import (
 // TestAddVieMaxVie simule l'ajout de vie à un personnage dont la vie est déjà au maximum.
 func TestAddVieMaxVie(t *testing.T) {
 	var p Personnage
-	p.Vie = 100 // Supposons que la vie max est 100
+	p.Vie = 100
 	p.VieMax = 100
 	vieAjoutee := 10.0
 	expected := true
-	result := AddVie(p, vieAjoutee) // Pass the dereferenced value of p
+	result := AddVie(p, vieAjoutee)
 	if result != expected {
 		t.Errorf("AddVie(%v, %v) = %v; want %v", p, vieAjoutee, result, expected)
 	}

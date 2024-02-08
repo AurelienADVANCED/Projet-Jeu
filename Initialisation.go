@@ -7,6 +7,9 @@ import (
 
 //Initialisation
 
+// Liste de toutes les armes
+var toutesLesArmes []items.Arme
+
 // Initialisation des armes pour différentes classes
 
 func CreerNourriture(nom string, stack, stackMax int, vieRecup float64, symbole string) *items.Nourriture {
@@ -19,118 +22,48 @@ func CreerNourriture(nom string, stack, stackMax int, vieRecup float64, symbole 
 	}
 }
 
-func CreerArme(nom string, degats float64, classe string) items.Arme {
-	return items.Arme{Nom: nom, Degats: degats, StackMax: 1, Classe: classe}
+func InitialisationDesItems() {
+	// Ajoute toutes les armes à la liste
+	toutesLesArmes = []items.Arme{
+		{Nom: "Bâton de Magie", Degats: 35.0, Classe: "Magicien", Default: true},
+		{Nom: "Sceptre Ancien", Degats: 60.0, Classe: "Magicien", Default: false},
+		{Nom: "Bâton de Glace", Degats: 45.0, Classe: "Magicien", Default: false},
+		{Nom: "Bâton de Feu Enchanté", Degats: 70.0, Classe: "Magicien", Default: false},
+
+		{Nom: "Épée Longue", Degats: 50.0, Classe: "Chevalier", Default: true},
+		{Nom: "Épée du Chevalier Noir", Degats: 75.0, Classe: "Chevalier", Default: false},
+		{Nom: "Lance de Justicier", Degats: 65.0, Classe: "Chevalier", Default: false},
+		{Nom: "Épée à Deux Mains", Degats: 85.0, Classe: "Chevalier", Default: false},
+
+		{Nom: "Arc Long", Degats: 40.0, Classe: "Elfe", Default: true},
+		{Nom: "Arc de la Lune", Degats: 55.0, Classe: "Elfe", Default: false},
+		{Nom: "Arc Court Agile", Degats: 35.0, Classe: "Elfe", Default: false},
+		{Nom: "Arc Enchanté", Degats: 60.0, Classe: "Elfe", Default: false},
+
+		{Nom: "Hache de Guerre", Degats: 60.0, Classe: "Nain", Default: true},
+		{Nom: "Marteau des Profondeurs", Degats: 80.0, Classe: "Nain", Default: false},
+		{Nom: "Hache à Deux Mains", Degats: 75.0, Classe: "Nain", Default: false},
+		{Nom: "Pioche de Combat", Degats: 65.0, Classe: "Nain", Default: false},
+
+		{Nom: "Fronde", Degats: 20.0, Classe: "Gobelin", Default: true},
+		{Nom: "Dague Empoisonnée", Degats: 30.0, Classe: "Gobelin", Default: false},
+		{Nom: "Arc Court de Gobelin", Degats: 25.0, Classe: "Gobelin", Default: false},
+		{Nom: "Bâton Tordu", Degats: 20.0, Classe: "Gobelin", Default: false},
+
+		{Nom: "Massue", Degats: 55.0, Classe: "Orc", Default: true},
+		{Nom: "Hache du Chef Orc", Degats: 70.0, Classe: "Orc", Default: false},
+		{Nom: "Épée Large d'Orc", Degats: 65.0, Classe: "Orc", Default: false},
+		{Nom: "Marteau de Guerre Orc", Degats: 80.0, Classe: "Orc", Default: false},
+	}
+
 }
 
-// Armes Magicien
-func ArmeDeBasePourMagicien() items.Arme {
-	return CreerArme("Bâton de Magie", 35.0, "Magicien")
-}
-
-func SceptreAncien() items.Arme {
-	return CreerArme("Sceptre Ancien", 60.0, "Magicien")
-}
-
-func BatonDeGlace() items.Arme {
-	return CreerArme("Bâton de Glace", 45.0, "Magicien")
-}
-
-func BatonDeFeuEnchante() items.Arme {
-	return CreerArme("Bâton de Feu Enchanté", 70.0, "Magicien")
-}
-
-// Chevalier
-func ArmeDeBasePourChevalier() items.Arme {
-	return CreerArme("Épée Longue", 50.0, "Chevalier")
-}
-
-func EpeeDeChevalierNoir() items.Arme {
-	return CreerArme("Épée du Chevalier Noir", 75.0, "Chevalier")
-}
-
-func LanceDeJusticier() items.Arme {
-	return CreerArme("Lance de Justicier", 65.0, "Chevalier")
-}
-
-func EpeeADeuxMains() items.Arme {
-	return CreerArme("Épée à Deux Mains", 85.0, "Chevalier")
-}
-
-// Elfe
-func ArmeDeBasePourElfe() items.Arme {
-	return CreerArme("Arc Long", 40.0, "Elfe")
-}
-
-func ArcDeLaLune() items.Arme {
-	return CreerArme("Arc de la Lune", 55.0, "Elfe")
-}
-
-func ArcCourtAgile() items.Arme {
-	return CreerArme("Arc Court Agile", 35.0, "Elfe")
-}
-
-func ArcEnchante() items.Arme {
-	return CreerArme("Arc Enchanté", 60.0, "Elfe")
-}
-
-// Nain
-func ArmeDeBasePourNain() items.Arme {
-	return CreerArme("Hache de Guerre", 60.0, "Nain")
-}
-
-func MarteauDesProfondeurs() items.Arme {
-	return CreerArme("Marteau des Profondeurs", 80.0, "Nain")
-}
-
-func HacheADeuxMains() items.Arme {
-	return CreerArme("Hache à Deux Mains", 75.0, "Nain")
-}
-
-func PiocheDeCombat() items.Arme {
-	return CreerArme("Pioche de Combat", 65.0, "Nain")
-}
-
-// Gobelin
-func ArmeDeBasePourGobelin() items.Arme {
-	return CreerArme("Fronde", 20.0, "Gobelin")
-}
-
-func DagueEmpoisonnee() items.Arme {
-	return CreerArme("Dague Empoisonnée", 30.0, "Gobelin")
-}
-
-func ArcCourtDeGobelin() items.Arme {
-	return CreerArme("Arc Court de Gobelin", 25.0, "Gobelin")
-}
-
-func BatonTordu() items.Arme {
-	return CreerArme("Bâton Tordu", 20.0, "Gobelin")
-}
-
-// Orc
-func ArmeDeBasePourOrc() items.Arme {
-	return CreerArme("Massue", 55.0, "Orc")
-}
-
-func HacheDuChefOrc() items.Arme {
-	return CreerArme("Hache du Chef Orc", 70.0, "Orc")
-}
-
-func EpeeLargeDOrc() items.Arme {
-	return CreerArme("Épée Large d'Orc", 65.0, "Orc")
-}
-
-func MarteauDeGuerreOrc() items.Arme {
-	return CreerArme("Marteau de Guerre Orc", 80.0, "Orc")
-}
-
-func AddCoteDePorc(Quantite int) *items.Nourriture {
-	return CreerNourriture("Côte de Porc", Quantite, 100, 20.0, "C")
+func AddViande(Quantite int) *items.Nourriture {
+	return CreerNourriture("Morceau de viande", Quantite, 2, 20.0, "🥩")
 }
 
 func AddPotionDeSoin(Quantite int) *items.Nourriture {
-	return CreerNourriture("Potion de Soin", Quantite, 100, 50.0, "P")
+	return CreerNourriture("Potion de Soin", Quantite, 2, 50.0, "🧪")
 }
 
 // Initialisation des personnages
@@ -141,8 +74,9 @@ func CreerMagicien() Magicien {
 		Personnage: Personnage{
 			Vie:              vieAleatoire,
 			VieMax:           vieAleatoire,
-			Arme:             ArmeDeBasePourMagicien(),
+			Arme:             GetDefaultWeaponByClass("Magicien"),
 			Mana:             150.0,
+			ManaMax:          150.0,
 			Force:            20.0,
 			Agilite:          30.0,
 			Armure:           10.0,
@@ -159,8 +93,9 @@ func CreerChevalier() Chevalier {
 		Personnage: Personnage{
 			Vie:              vieAleatoire,
 			VieMax:           vieAleatoire,
-			Arme:             ArmeDeBasePourChevalier(),
+			Arme:             GetDefaultWeaponByClass("Chevalier"),
 			Mana:             0.0,
+			ManaMax:          0.0,
 			Force:            60.0,
 			Agilite:          40.0,
 			Armure:           50.0,
@@ -177,8 +112,9 @@ func nouveauElfe() Elfe {
 		Personnage: Personnage{
 			Vie:              vieAleatoire,
 			VieMax:           vieAleatoire,
-			Arme:             ArmeDeBasePourElfe(),
-			Mana:             rand.Float64() * 50, // Ajuster selon la nature de l'Elfe
+			Arme:             GetDefaultWeaponByClass("Elfe"),
+			Mana:             rand.Float64() * 50,
+			ManaMax:          50,
 			Force:            rand.Float64() * 10,
 			Agilite:          rand.Float64() * 20,
 			Classe:           "Elfe",
@@ -193,8 +129,9 @@ func nouveauNain() Nain {
 		Personnage: Personnage{
 			Vie:              vieAleatoire,
 			VieMax:           vieAleatoire,
-			Arme:             ArmeDeBasePourNain(),
+			Arme:             GetDefaultWeaponByClass("Nain"),
 			Mana:             0, // Nains n'utilisent généralement pas de Mana
+			ManaMax:          0,
 			Force:            rand.Float64() * 15,
 			Agilite:          rand.Float64() * 5,
 			Classe:           "Nain",
@@ -209,7 +146,7 @@ func nouveauGobelin() Gobelin {
 		Monstre: Monstre{
 			Vie:              vieAleatoire,
 			VieMax:           vieAleatoire,
-			Arme:             ArmeDeBasePourGobelin(),
+			Arme:             GetDefaultWeaponByClass("Gobelin"),
 			NiveauDeMenace:   rand.Float64() * 5,
 			Classe:           "Gobelin",
 			RayonDeplacement: 3,
@@ -223,10 +160,19 @@ func nouveauOrc() Orc {
 		Monstre: Monstre{
 			Vie:              vieAleatoire,
 			VieMax:           vieAleatoire,
-			Arme:             ArmeDeBasePourOrc(),
+			Arme:             GetDefaultWeaponByClass("Orc"),
 			NiveauDeMenace:   rand.Float64() * 10,
 			Classe:           "Orc",
 			RayonDeplacement: 1,
 		},
 	}
+}
+
+func GetDefaultWeaponByClass(classe string) *items.Arme {
+	for _, arme := range toutesLesArmes {
+		if arme.Default && arme.Classe == classe {
+			return &arme
+		}
+	}
+	return nil
 }

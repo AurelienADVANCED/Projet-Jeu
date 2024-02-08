@@ -19,19 +19,19 @@ Assurez-vous d'avoir Go installé sur votre système. Vous pouvez télécharger 
 ## Comment jouer
 
 1. Clonez ce dépôt sur votre machine :
-```bash
+
 git clone https://github.com/votre-utilisateur/jeu-go.git
-```
+
 
 2. Accédez au répertoire du jeu :
-```bash
+
 cd jeu-go
-```
+
 
 3. Exécutez le jeu :
-```bash
+
 go run .
-```
+
 
 4. Suivez les instructions à l'écran pour jouer au jeu.
 
@@ -41,8 +41,7 @@ Le jeu dispose également d'une API pour récupérer des informations sur la car
 
 - Récupérer toutes les informations de la carte :
 
-```bash
 GET /api/carte
-```
+
 
 Cette requête renverra un JSON contenant toutes les données de la carte, y compris la grille, les personnages, les monstres, etc.
