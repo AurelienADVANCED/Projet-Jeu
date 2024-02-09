@@ -2,7 +2,7 @@ trigger:
 - main
 
 resources:
-- repo: Default
+- repo: self
 
 variables:
   tag: '$(Build.BuildId)'
@@ -14,7 +14,7 @@ stages:
   - job: BuildImageJob
     displayName: 'Build Image Job'
     pool:
-      vmImage: 'golang:alpine3.19'
+      name: Default
     steps:
     - script: |
         docker build -t feur/latest:$(Build.BuildId) .
