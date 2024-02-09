@@ -22,6 +22,6 @@ stages:
         displayName: 'Build Docker Image'
       
       - script: |
-          docker login -u $(DOCKER_USERNAME) -p $(DOCKER_PASSWORD)
+          docker login -u aurelienadvanced -p Dq86Hxwr&bVT+$Y
           docker push $(imageName):$(tag)
         displayName: 'Push Docker Image to Docker Hub'
