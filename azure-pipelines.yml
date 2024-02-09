@@ -9,6 +9,18 @@ variables:
   imageName: 'aurelienadvanced/projet-jeu'
 
 stages:
+- stage: TestUnit
+  displayName: 'Run Unit Tests'
+  jobs:
+  - job: TestUnitJob
+    displayName: Run unit tests
+    pool:
+      name: Default
+    steps:
+    - script: |
+        go test ./...
+      displayName: 'Run Go Unit Tests'
+      
 - stage: BuildImage
   displayName: 'Build Docker Image'
   jobs:        
