@@ -1,7 +1,3 @@
-# Docker
-# Build a Docker image
-# https://docs.microsoft.com/azure/devops/pipelines/languages/docker
-
 trigger:
 - main
 
@@ -12,20 +8,21 @@ variables:
   tag: '$(Build.BuildId)'
 
 stages:
-- stage: BuildAndDeploy
-  displayName: 'Build and Deploy'
+- stage: BuildImage
+  displayName: 'Build Docker Image'
   jobs:
-  - job: BuildAndDeployJob
-    displayName: 'Build and Deploy Job'
+  - job: BuildImageJob
+    displayName: 'Build Image Job'
     pool:
       vmImage: 'golang:alpine3.19'
     steps:
-    - script: echo This is a placeholder build step.
-      displayName: 'Placeholder Build Step'
+    - script: |
+        docker build -t feur/latest:$(Build.BuildId) .
+      displayName: 'Build Docker Image'
 
-- stage:
+- stage: DeployToDevEnv
   displayName: 'Deploy to dev env'
-  dependsOn: BuildAndDeploy
+  dependsOn: BuildImage
   jobs:        
     - deployment: DeployWebTest
       displayName: Deploy a docker image to on premise server
