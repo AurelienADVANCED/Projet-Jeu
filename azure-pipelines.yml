@@ -10,15 +10,19 @@ variables:
 stages:
 - stage: BuildImage
   displayName: 'Build Docker Image'
-  jobs:
-  - job: BuildImageJob
-    displayName: 'Build Image Job'
-    pool:
-      name: Default
-    steps:
-    - script: |
-        docker build -t feur/latest:$(Build.BuildId) .
-      displayName: 'Build Docker Image'
+  jobs:        
+    - deployment: DeployWebTest
+      displayName: Build a docker image to on premise server
+      environment:
+        name: Docker
+        resourceName: webserv
+        resourceType: virtualMachine
+      strategy:
+        runOnce:
+          deploy:
+            steps:
+            - script: |
+                docker build -t feur/latest:$(Build.BuildId)
 
 - stage: DeployToDevEnv
   displayName: 'Deploy to dev env'
