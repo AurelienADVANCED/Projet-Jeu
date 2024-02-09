@@ -11,18 +11,15 @@ stages:
 - stage: BuildImage
   displayName: 'Build Docker Image'
   jobs:        
-    - deployment: DeployWebTest
-      displayName: Build a docker image to on premise server
-      environment:
-        name: Docker
-        resourceName: webserv
-        resourceType: virtualMachine
-      strategy:
-        runOnce:
-          deploy:
-            steps:
-            - script: |
-                docker build -t feur/latest:$(Build.BuildId) .
+    - job: BuildImageJob
+      displayName: Build a docker image
+      pool:
+        name: Default
+        vmImage: 'golang:alpine3.19'
+      steps:
+      - script: |
+          docker build -t feur/latest:$(Build.BuildId) .
+        displayName: 'Build Docker Image'
 
 - stage: DeployToDevEnv
   displayName: 'Deploy to dev env'
