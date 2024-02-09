@@ -69,7 +69,7 @@ func AddPotionDeSoin(Quantite int) *items.Nourriture {
 // Initialisation des personnages
 
 func CreerMagicien() Magicien {
-	vieAleatoire := rand.Float64() * 100
+	vieAleatoire := 100 + rand.Float64()*100
 	return Magicien{
 		Personnage: Personnage{
 			Vie:              vieAleatoire,
@@ -88,7 +88,7 @@ func CreerMagicien() Magicien {
 }
 
 func CreerChevalier() Chevalier {
-	vieAleatoire := rand.Float64() * 150
+	vieAleatoire := 100 + rand.Float64()*150
 	return Chevalier{
 		Personnage: Personnage{
 			Vie:              vieAleatoire,
@@ -107,7 +107,7 @@ func CreerChevalier() Chevalier {
 }
 
 func nouveauElfe() Elfe {
-	vieAleatoire := rand.Float64() * 80
+	vieAleatoire := 100 + rand.Float64()*80
 	return Elfe{
 		Personnage: Personnage{
 			Vie:              vieAleatoire,
@@ -124,7 +124,7 @@ func nouveauElfe() Elfe {
 }
 
 func nouveauNain() Nain {
-	vieAleatoire := rand.Float64() * 100
+	vieAleatoire := 100 + rand.Float64()*100
 	return Nain{
 		Personnage: Personnage{
 			Vie:              vieAleatoire,
@@ -141,7 +141,7 @@ func nouveauNain() Nain {
 }
 
 func nouveauGobelin() Gobelin {
-	vieAleatoire := rand.Float64() * 50
+	vieAleatoire := 100 + rand.Float64()*50
 	return Gobelin{
 		Monstre: Monstre{
 			Vie:              vieAleatoire,
@@ -155,7 +155,7 @@ func nouveauGobelin() Gobelin {
 }
 
 func nouveauOrc() Orc {
-	vieAleatoire := rand.Float64() * 150
+	vieAleatoire := 100 + rand.Float64()*150
 	return Orc{
 		Monstre: Monstre{
 			Vie:              vieAleatoire,

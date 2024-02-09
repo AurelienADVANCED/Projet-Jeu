@@ -11,7 +11,8 @@ func TestAddVieMaxVie(t *testing.T) {
 	p.VieMax = 100
 	vieAjoutee := 10.0
 	expected := true
-	result := AddVie(p, vieAjoutee)
+
+	result := AddVie(&p, vieAjoutee)
 	if result != expected {
 		t.Errorf("AddVie(%v, %v) = %v; want %v", p, vieAjoutee, result, expected)
 	}

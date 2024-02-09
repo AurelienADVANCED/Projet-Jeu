@@ -20,12 +20,12 @@ func genererBarre(valeurActuelle float64, valeurMaximale float64, couleurPleine,
 	return strings.Repeat(couleurPleine, proportionPleine) + strings.Repeat(couleurVide, proportionVide)
 }
 
-func afficherStatutPersonnage(p Personnage) {
+func afficherStatutPersonnage(p Personnage, AfficherMana bool) {
 
 	barreVie := genererBarre(p.Vie, p.VieMax, "🟩", "🟥")
 	affichageVie := fmt.Sprintf("%s %s %.2f/%.2f PV", p.Classe, barreVie, p.Vie, p.VieMax)
 	fmt.Println(affichageVie)
-	if p.ManaMax > 0 { // Affiche aussi la barre de mana si nécessaire
+	if p.ManaMax > 0 && AfficherMana { // Affiche aussi la barre de mana si nécessaire
 		barreMana := genererBarre(p.Mana, p.ManaMax, "🟦", "🟥")
 		affichageMana := fmt.Sprintf("%s %s %.2f/%.2f Mana", p.Classe, barreMana, p.Mana, p.ManaMax)
 		fmt.Println(affichageMana)

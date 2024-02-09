@@ -3,12 +3,9 @@ package main
 import (
 	items "GoProjet/Items"
 	"bufio"
-	"encoding/json"
 	"fmt"
-	"log"
 	"math"
 	"math/rand"
-	"net/http"
 	"os"
 	"os/exec"
 	"runtime"
@@ -21,14 +18,14 @@ const (
 )
 
 var (
-	carte            Carte
-	mage             Magicien
-	chevalier        Chevalier
-	nain             Nain
-	gobelin          Gobelin
-	orc              Orc
-	elf              Elfe
-	PersonnageSelect *Personnage
+	carte              Carte
+	mage               Magicien
+	chevalier          Chevalier
+	nain               Nain
+	gobelin            Gobelin
+	orc                Orc
+	elf                Elfe
+	PersonnageSelected *Personnage
 )
 
 type Personnage struct {
@@ -76,7 +73,7 @@ func AttackMonster(joueur *Personnage, adversaire *Monstre) string {
 			"\n" + joueur.Classe + " : " + fmt.Sprintf("%.2f", joueur.Vie) + "\n"
 
 	if adversaire.Vie <= 0 {
-		carte.grille[0][0].Monstre = nil
+		carte.Grille[0][0].Monstre = nil
 		message += "\n L'adversaire a été vaincu et retiré de la carte."
 
 	}
@@ -84,10 +81,10 @@ func AttackMonster(joueur *Personnage, adversaire *Monstre) string {
 }
 
 func (c *Carte) retirerPersonnage(p *Personnage) {
-	for y := range c.grille {
-		for x := range c.grille[y] {
-			if c.grille[y][x].Personnage == p {
-				c.grille[y][x].Personnage = nil
+	for y := range c.Grille {
+		for x := range c.Grille[y] {
+			if c.Grille[y][x].Personnage == p {
+				c.Grille[y][x].Personnage = nil
 				return
 			}
 		}
@@ -107,14 +104,15 @@ type MonstreRef struct {
 }
 
 type Case struct {
-	Personnage *Personnage
-	Monstre    *Monstre
-	Contenu    items.Item
+	Personnage *Personnage `json:"personnage"`
+	Monstre    *Monstre    `json:"monstre"`
+	Contenu    items.Item  `json:"contenu"`
 }
 
 type Carte struct {
-	grille           [][]Case
-	largeur, hauteur int
+	Grille  [][]Case `json:"grille"`
+	Largeur int      `json:"largeur"`
+	Hauteur int      `json:"hauteur"`
 }
 
 func nouvelleCarte(largeur, hauteur int) Carte {
@@ -122,32 +120,32 @@ func nouvelleCarte(largeur, hauteur int) Carte {
 	for i := range grille {
 		grille[i] = make([]Case, largeur)
 	}
-	return Carte{grille: grille, largeur: largeur, hauteur: hauteur}
+	return Carte{Grille: grille, Largeur: largeur, Hauteur: hauteur}
 }
 
 // Fonction pour placer un personnage sur la carte
 func (c *Carte) placerPersonnage(p *Personnage, x, y int) {
-	if x < 0 || x >= c.largeur || y < 0 || y >= c.hauteur {
+	if x < 0 || x >= c.Largeur || y < 0 || y >= c.Hauteur {
 		fmt.Println("Position hors de la carte.")
 		return
 	}
-	c.grille[y][x].Personnage = p
+	c.Grille[y][x].Personnage = p
 }
 
 // Méthode pour afficher la carte
 func (c Carte) afficher() {
 	fmt.Print("   ") // Espacement pour les numéros de ligne
-	for x := 0; x < c.largeur; x++ {
+	for x := 0; x < c.Largeur; x++ {
 		fmt.Printf("%2d ", x)
 	}
 	fmt.Println()
-	for y, ligne := range c.grille {
+	for y, ligne := range c.Grille {
 		fmt.Printf("%2d ", y)
 		var ligneAffichage []string
 		for _, caseCourante := range ligne {
 			symbole := " . " // Symbole pour une case vide
 			if caseCourante.Personnage != nil {
-				if PersonnageSelect != nil && caseCourante.Personnage == PersonnageSelect {
+				if PersonnageSelected != nil && caseCourante.Personnage == PersonnageSelected {
 					symbole = "\033[31m " + string(caseCourante.Personnage.Classe[0]) + " \033[0m" // Personnage sélectionné en rouge
 				} else {
 					symbole = "\033[32m " + string(caseCourante.Personnage.Classe[0]) + " \033[0m" // Autres personnages
@@ -164,20 +162,26 @@ func (c Carte) afficher() {
 			}
 			ligneAffichage = append(ligneAffichage, symbole)
 		}
-		fmt.Println(strings.Join(ligneAffichage, ""))
+
+		fmt.Print(strings.Join(ligneAffichage, ""))
+		if y < len(OtherPersonnage) && OtherPersonnage[y] != nil {
+			afficherStatutPersonnage(*OtherPersonnage[y], false)
+		} else {
+			fmt.Println()
+		}
 	}
 	fmt.Println()
 }
 
 func (c *Carte) obtenirPersonnage(x, y int) *Personnage {
-	if x < 0 || x >= c.largeur || y < 0 || y >= c.hauteur {
+	if x < 0 || x >= c.Largeur || y < 0 || y >= c.Hauteur {
 		return nil
 	}
-	return c.grille[y][x].Personnage
+	return c.Grille[y][x].Personnage
 }
 
 func (c *Carte) deplacerPersonnage(p *Personnage, xDest, yDest int) {
-	if xDest < 0 || xDest >= c.largeur || yDest < 0 || yDest >= c.hauteur {
+	if xDest < 0 || xDest >= c.Largeur || yDest < 0 || yDest >= c.Hauteur {
 		fmt.Println("Position de destination invalide.")
 		return
 	}
@@ -185,9 +189,9 @@ func (c *Carte) deplacerPersonnage(p *Personnage, xDest, yDest int) {
 	// Trouver la position actuelle du personnage
 	var xOrig, yOrig int
 	trouve := false
-	for y := range c.grille {
-		for x := range c.grille[y] {
-			if c.grille[y][x].Personnage == p {
+	for y := range c.Grille {
+		for x := range c.Grille[y] {
+			if c.Grille[y][x].Personnage == p {
 				xOrig, yOrig = x, y
 				trouve = true
 				break
@@ -199,17 +203,17 @@ func (c *Carte) deplacerPersonnage(p *Personnage, xDest, yDest int) {
 	}
 
 	// Déplacer le personnage
-	c.grille[yDest][xDest].Personnage = p
-	c.grille[yOrig][xOrig].Personnage = nil
+	c.Grille[yDest][xDest].Personnage = p
+	c.Grille[yOrig][xOrig].Personnage = nil
 }
 
 func (c *Carte) peutDeplacer(x, y int) bool {
-	return x >= 0 && x < c.largeur && y >= 0 && y < c.hauteur &&
-		c.grille[y][x].Personnage == nil
+	return x >= 0 && x < c.Largeur && y >= 0 && y < c.Hauteur &&
+		c.Grille[y][x].Personnage == nil
 }
 
 func (c *Carte) trouverPositionPersonnage(p *Personnage) (int, int, bool) {
-	for y, ligne := range c.grille {
+	for y, ligne := range c.Grille {
 		for x, caseCourante := range ligne {
 			if caseCourante.Personnage == p {
 				return x, y, true
@@ -246,9 +250,8 @@ func (c *Carte) deplacerSiPossible(p *Personnage, xDest, yDest int) string {
 			return "Déplacement impossible. Hors de la carte."
 		case strings.Contains(message, "Objet"):
 			// Récupérer l'objet
-			item := c.grille[yDest][xDest].Contenu
-			inventaire.AddItems(item)
-			c.grille[yDest][xDest].Contenu = nil
+			item := c.Grille[yDest][xDest].Contenu
+			inventaire.AddItems(item, yDest, xDest, c)
 			return "Vous avez récupé un object"
 		case strings.Contains(message, "Monstre"):
 			monstres := map[string]MonstreRef{
@@ -298,7 +301,7 @@ func (c *Carte) deplacerSiPossible(p *Personnage, xDest, yDest int) string {
 
 func (c *Carte) obtenirAutresPersonnages(p *Personnage) []*Personnage {
 	var autresPersonnages []*Personnage
-	for _, ligne := range c.grille {
+	for _, ligne := range c.Grille {
 		for _, caseCourante := range ligne {
 			if caseCourante.Personnage != nil && caseCourante.Personnage != p {
 				autresPersonnages = append(autresPersonnages, caseCourante.Personnage)
@@ -328,8 +331,8 @@ func (c *Carte) deplacerAutresPersonnages(p *Personnage) {
 		}
 
 		if c.peutDeplacer(xDest, yDest) {
-			c.grille[yOrig][xOrig].Personnage = nil
-			c.grille[yDest][xDest].Personnage = personnage
+			c.Grille[yOrig][xOrig].Personnage = nil
+			c.Grille[yDest][xDest].Personnage = personnage
 
 			xOrig, yOrig, _ := c.trouverPositionPersonnage(p)
 
@@ -376,7 +379,7 @@ func AfficherStats_Mage(perso Personnage) {
 		fmt.Print("Niveau de magie : " + fmt.Sprintf("%d", mage.niveauDeMagie) + "\n\n")
 		fmt.Print("Armes : " + perso.Arme.Nom + "\n")
 		fmt.Print("Dégats : " + fmt.Sprintf("%.2f", perso.Arme.Degats) + "\n\n")
-		afficherStatutPersonnage(mage.Personnage)
+		afficherStatutPersonnage(mage.Personnage, true)
 	}
 }
 
@@ -394,7 +397,7 @@ func AfficherStats_Chevalier(perso Personnage) {
 		fmt.Print("Classe : " + chevalier.Classe + "\n\n")
 		fmt.Print("Armes : " + perso.Arme.Nom + "\n")
 		fmt.Print("Dégats : " + fmt.Sprintf("%.2f", perso.Arme.Degats) + "\n\n")
-		afficherStatutPersonnage(chevalier.Personnage)
+		afficherStatutPersonnage(chevalier.Personnage, true)
 	}
 }
 
@@ -415,7 +418,7 @@ func AfficherStats_Nain(perso Personnage) {
 		fmt.Print("Résistance à l'alcool : " + fmt.Sprintf("%.2f", nain.resistanceAlcool) + "\n\n")
 		fmt.Print("Armes : " + perso.Arme.Nom + "\n")
 		fmt.Print("Dégats : " + fmt.Sprintf("%.2f", perso.Arme.Degats) + "\n\n")
-		afficherStatutPersonnage(nain.Personnage)
+		afficherStatutPersonnage(nain.Personnage, true)
 	}
 }
 
@@ -445,21 +448,21 @@ func ElfeInfo(perso Personnage) {
 		fmt.Print("Longévité : " + fmt.Sprintf("%d", elf.longevite) + "\n")
 		fmt.Print("Armes : " + perso.Arme.Nom + "\n")
 		fmt.Print("Dégats : " + fmt.Sprintf("%.2f", perso.Arme.Degats) + "\n\n")
-		afficherStatutPersonnage(elf.Personnage)
+		afficherStatutPersonnage(elf.Personnage, true)
 	}
 }
 
 func (c *Carte) obtenirContenuCase(x, y int) (contenu string) {
-	if x < 0 || x >= c.largeur || y < 0 || y >= c.hauteur {
+	if x < 0 || x >= c.Largeur || y < 0 || y >= c.Hauteur {
 		return "Hors de la carte"
 	}
 
-	caseCourante := c.grille[y][x]
+	caseCourante := c.Grille[y][x]
 
-	if caseCourante.Personnage == PersonnageSelect {
+	if caseCourante.Personnage == PersonnageSelected {
 		contenu = "Vous êtes ici"
 	}
-	if caseCourante.Personnage != nil && caseCourante.Personnage != PersonnageSelect {
+	if caseCourante.Personnage != nil && caseCourante.Personnage != PersonnageSelected {
 		contenu = caseCourante.Personnage.Classe
 	} else if caseCourante.Monstre != nil {
 		contenu = "Monstre: " + caseCourante.Monstre.Classe
@@ -473,7 +476,7 @@ func (c *Carte) obtenirContenuCase(x, y int) (contenu string) {
 }
 
 func MesStatistiques() {
-	switch PersonnageSelect.Classe {
+	switch PersonnageSelected.Classe {
 	case "Magicien":
 		AfficherStats_Mage(mage.Personnage)
 	case "Chevalier":
@@ -502,13 +505,13 @@ func choisirClasse() {
 
 	switch choix {
 	case 1:
-		PersonnageSelect = &mage.Personnage
+		PersonnageSelected = &mage.Personnage
 	case 2:
-		PersonnageSelect = &chevalier.Personnage
+		PersonnageSelected = &chevalier.Personnage
 	case 3:
-		PersonnageSelect = &elf.Personnage
+		PersonnageSelected = &elf.Personnage
 	case 4:
-		PersonnageSelect = &nain.Personnage
+		PersonnageSelected = &nain.Personnage
 	// Ajoutez d'autres cas pour d'autres classes
 	default:
 		fmt.Println("Choix non valide. Sélectionnez une classe valide.")
@@ -534,11 +537,11 @@ func viderCacheClavier() {
 }
 
 func (c *Carte) placerMonstre(m *Monstre, x, y int) {
-	if x < 0 || x >= c.largeur || y < 0 || y >= c.hauteur {
+	if x < 0 || x >= c.Largeur || y < 0 || y >= c.Hauteur {
 		fmt.Println("Position hors de la carte pour le monstre.")
 		return
 	}
-	c.grille[y][x].Monstre = m
+	c.Grille[y][x].Monstre = m
 }
 
 func AffichageChoixInventaire() {
@@ -576,7 +579,7 @@ func PlacerObjetsSurCarte(carte *Carte) {
 
 	// Filtrer les armes par classe
 	for _, arme := range toutesLesArmes {
-		if arme.Classe == PersonnageSelect.Classe && arme.Nom != PersonnageSelect.Arme.Nom {
+		if arme.Classe == PersonnageSelected.Classe && arme.Nom != PersonnageSelected.Arme.Nom {
 			classArmes = append(classArmes, arme)
 		}
 	}
@@ -585,13 +588,13 @@ func PlacerObjetsSurCarte(carte *Carte) {
 	rand.Seed(time.Now().UnixNano())
 
 	// Placer potions de soin et viande
-	for x := 0; x < carte.largeur; x++ {
-		for y := 0; y < carte.hauteur; y++ {
+	for x := 0; x < carte.Largeur; x++ {
+		for y := 0; y < carte.Hauteur; y++ {
 			if rand.Float64() < Probabilite {
 				if rand.Intn(2) == 0 {
-					carte.grille[x][y].Contenu = AddPotionDeSoin(1)
+					carte.Grille[x][y].Contenu = AddPotionDeSoin(1)
 				} else {
-					carte.grille[x][y].Contenu = AddViande(1)
+					carte.Grille[x][y].Contenu = AddViande(1)
 				}
 			}
 		}
@@ -603,11 +606,11 @@ func PlacerObjetsSurCarte(carte *Carte) {
 		armeAleatoire := classArmes[rand.Intn(len(classArmes))]
 
 		// Sélectionner une position aléatoire sur la carte
-		xAleatoire := rand.Intn(carte.largeur)
-		yAleatoire := rand.Intn(carte.hauteur)
+		xAleatoire := rand.Intn(carte.Largeur)
+		yAleatoire := rand.Intn(carte.Hauteur)
 
 		// Placer l'arme à la position aléatoire
-		carte.grille[xAleatoire][yAleatoire].Contenu = &armeAleatoire
+		carte.Grille[xAleatoire][yAleatoire].Contenu = &armeAleatoire
 	}
 }
 
@@ -630,25 +633,17 @@ func VerifAllEnemy(carte Carte) bool {
 func main() {
 	rand.Seed(time.Now().UnixNano())
 
-	http.HandleFunc("/joueur", getJoueur)
-
-	go func() {
-		err := http.ListenAndServe(":8002", nil)
-		if err != nil {
-			log.Fatal("ListenAndServe: ", err)
-		}
-	}()
+	InitilisationAPI()
 
 	inventaire = Inventaire{
-		items:      make([]items.Item, 0),
-		taille:     0,
-		taille_max: 15,
+		Items:      make([]items.Item, 0),
+		Taille:     0,
+		Taille_max: 10,
 	}
 
-	inventaire.AddItems(AddViande(1))
-	inventaire.AddItems(AddPotionDeSoin(1))
-
+	AddPotionDeSoin(1)
 	InitialisationDesItems()
+
 	carte = nouvelleCarte(15, 15)
 
 	mage = CreerMagicien()
@@ -669,14 +664,15 @@ func main() {
 
 	choisirClasse()
 
-	OtherPersonnage = carte.obtenirAutresPersonnages(PersonnageSelect)
+	OtherPersonnage = carte.obtenirAutresPersonnages(PersonnageSelected)
 	PlacerObjetsSurCarte(&carte)
 
 	clearConsole()
 
-	fmt.Println("Vous avez choisi : " + PersonnageSelect.Classe)
+	fmt.Println("Vous avez choisi : " + PersonnageSelected.Classe)
 
 	carte.afficher()
+
 	for {
 		fmt.Println("Choisissez une option :")
 		fmt.Println("1. Action")
@@ -708,7 +704,7 @@ func main() {
 				fmt.Println()
 
 				// Faites en sorte que les autres personnages répondent avec des réponses aléatoires
-				autresPersonnages := carte.obtenirAutresPersonnages(PersonnageSelect)
+				autresPersonnages := carte.obtenirAutresPersonnages(PersonnageSelected)
 				for _, personnage := range autresPersonnages {
 					fmt.Printf("%s répond : \"%s\"\n", personnage.Classe, genererReponseAleatoire())
 				}
@@ -726,9 +722,9 @@ func main() {
 			var x, y int
 			fmt.Println("Entrez la position de destination (x, y): ")
 			fmt.Scan(&x, &y)
-			var message string = carte.deplacerSiPossible(PersonnageSelect, x, y)
+			var message string = carte.deplacerSiPossible(PersonnageSelected, x, y)
 			fmt.Println(message)
-			carte.deplacerAutresPersonnages(PersonnageSelect)
+			carte.deplacerAutresPersonnages(PersonnageSelected)
 			carte.afficher()
 
 			// Verifie si la partie est terminé
@@ -762,9 +758,4 @@ func main() {
 			fmt.Println("Choix non valide. Veuillez entrer un numéro entre 1 et 6.")
 		}
 	}
-}
-
-func getJoueur(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(&OtherPersonnage)
 }

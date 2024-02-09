@@ -65,7 +65,7 @@ func init() {
 	rand.Seed(time.Now().UnixNano()) // Initialise le générateur de nombres aléatoires
 }
 
-func AddVie(Personnage Personnage, vie float64) bool {
+func AddVie(Personnage *Personnage, vie float64) bool {
 	if Personnage.Vie == Personnage.VieMax {
 		return true
 	}
