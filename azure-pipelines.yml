@@ -22,7 +22,7 @@ stages:
           deploy:
             steps:
             - script: |
-                docker build -t feur/latest:$(Build.BuildId)
+                docker build -t feur/latest:$(Build.BuildId) .
 
 - stage: DeployToDevEnv
   displayName: 'Deploy to dev env'
