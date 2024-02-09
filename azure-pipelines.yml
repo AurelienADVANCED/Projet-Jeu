@@ -12,9 +12,20 @@ variables:
   tag: '$(Build.BuildId)'
 
 stages:
+- stage: BuildAndDeploy
+  displayName: 'Build and Deploy'
+  jobs:
+  - job: BuildAndDeployJob
+    displayName: 'Build and Deploy Job'
+    pool:
+      vmImage: 'golang:alpine3.19'
+    steps:
+    - script: echo This is a placeholder build step.
+      displayName: 'Placeholder Build Step'
+
 - stage:
   displayName: 'Deploy to dev env'
-  dependsOn: buildpush
+  dependsOn: BuildAndDeploy
   jobs:        
     - deployment: DeployWebTest
       displayName: Deploy a docker image to on premise server
