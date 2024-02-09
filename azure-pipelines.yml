@@ -2,7 +2,7 @@ trigger:
 - main
 
 resources:
-- repo: self
+- repo: Default
 
 variables:
   tag: '$(Build.BuildId)'
