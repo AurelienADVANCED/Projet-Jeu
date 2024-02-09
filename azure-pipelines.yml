@@ -6,6 +6,7 @@ resources:
 
 variables:
   tag: '$(Build.BuildId)'
+  imageName: 'aurelienadvanced/projet-jeu'
 
 stages:
 - stage: BuildImage
@@ -17,22 +18,10 @@ stages:
         name: Default
       steps:
       - script: |
-          docker build -t feur/latest:$(Build.BuildId) .
+          docker build -t $(imageName):$(tag) .
         displayName: 'Build Docker Image'
-
-- stage: DeployToDevEnv
-  displayName: 'Deploy to dev env'
-  dependsOn: BuildImage
-  jobs:        
-    - deployment: DeployWebTest
-      displayName: Deploy a docker image to on premise server
-      environment:
-        name: Docker
-        resourceName: webserv
-        resourceType: virtualMachine
-      strategy:
-        runOnce:
-          deploy:
-            steps:
-            - script: |
-                docker run  -p 8080:80 --name latest$(Build.BuildId) -d feur/latest:$(Build.BuildId)
+      
+      - script: |
+          docker login -u $(DOCKER_USERNAME) -p $(DOCKER_PASSWORD)
+          docker push $(imageName):$(tag)
+        displayName: 'Push Docker Image to Docker Hub'
