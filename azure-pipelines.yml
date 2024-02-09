@@ -15,7 +15,6 @@ stages:
       displayName: Build a docker image
       pool:
         name: Default
-        vmImage: 'golang:alpine3.19'
       steps:
       - script: |
           docker build -t feur/latest:$(Build.BuildId) .
