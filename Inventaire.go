@@ -136,6 +136,7 @@ func AfficherInventaire() {
 	}
 }
 
+// Fonction pour échanger l'arme actuelle du personnage avec une autre arme
 func switchWeapon(weapon1 *items.Arme, weapon2 *items.Arme) {
 	PersonnageSelected.Arme = weapon2
 	RemoveItems(weapon2, 1)
