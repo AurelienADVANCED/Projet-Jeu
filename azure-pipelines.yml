@@ -32,33 +32,8 @@ stages:
       - script: |
           docker build -t $(imageName):$(tag) .
         displayName: 'Build Docker Image'
-        
-- stage: PushImage
-  displayName: 'Push Docker Image to Docker Hub'
-  dependsOn: BuildImage
-  condition: succeeded()
-  jobs:
-    - job: PushImageJob
-      displayName: Push the Docker image
-      pool:
-        name: Default
-      steps:
+      
       - script: |
           docker login -u aurelienadvanced -p Aurelien20155?
           docker push $(imageName):$(tag)
-        displayName: 'Push Docker Image'
-
-- stage: Deploy
-  displayName: 'Deploy to Production'
-  dependsOn: PushImage
-  condition: succeeded()
-  jobs:
-    - job: DeployJob
-      displayName: Deploy the Docker image
-      pool:
-        name: Default
-      steps:
-      - script: |
-          echo "Deploying $(imageName):$(tag) to production"
-          docker run -d --name GoProjet -p 80:80 $(imageName):$(tag)
-        displayName: 'Create and Start Docker Container' 
+        displayName: 'Push Docker Image to Docker Hub'
